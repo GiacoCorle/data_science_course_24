@@ -1,0 +1,48 @@
+---
+title: "Measles rates in USA"
+format: html
+editor: visual
+---
+Point 1. Set up the dataframe
+```{r}
+#load libraries
+library(tidyverse)
+library(dslabs)
+avg <- dslabs::us_contagious_diseases %>% filter(disease== "Measles") %>% filter(! (state %in%  c("Hawaii","Alaska"))) %>% filter(weeks_reporting != 0) %>% mutate(rate=round(count/population*10000))
+```
+
+
+Point 2. Plot the rate and add the abline at year 1963 (year of introduction of vaccine)
+```{r}
+avg |> ggplot() + geom_line(aes(year,rate, group=state)) + geom_vline(xintercept = 1963, linetype = "dashed", color = "red")
+```
+
+Point.3colour the state in grey and make the log2of the rate to show better the plot
+```{r}
+avg |> ggplot() + geom_line(aes(year,log2(rate), group=state), col="grey") + geom_vline(xintercept = 1963, linetype = "dashed", color = "red")
+
+```
+
+Point.4 Make a heatmap showing the sqrt rate of all countries
+```{r}
+reds <- RColorBrewer::brewer.pal(9, "Reds")
+avg <- dslabs::us_contagious_diseases %>% filter(disease== "Measles") %>% filter(weeks_reporting != 0) %>% mutate(rate=round(count/population*10000))
+#this code order the states based their highest peak rate. In vermont before vaccination Measles was disruptive. Less in Louisian and south
+ordered_states <- avg %>% group_by(state) %>% summarize(overall_max = max(rate, na.rm = TRUE)) %>% arrange(desc(overall_max)) %>% pull(state)
+avg$state <- factor(avg$state, levels = ordered_states)
+#plot the heatmap
+avg |> ggplot(aes(year, state, fill= sqrt(rate))) +geom_tile() + scale_fill_gradientn(colors = reds, name = "Rate", na.value = "grey50") + theme_classic()+ labs(title = "Measles Rates Across States and Years", x = "Year", y = "State", fill = "Square Root of Rate")
+```
+
+Remarks from the analysis:
+
+1) Measles was a significant problem in the USA before the introduction of vaccination in 1963 across the country.
+
+2) Measles was more prevalent in the northern states of the USA, such as Vermont and Utah, instead of southern states like Louisiana.
+
+3) After the introduction of vaccination, the rate of measles in the USA immediately decreased and almost disappeared by the early 2000s.
+
+
+
+
+
