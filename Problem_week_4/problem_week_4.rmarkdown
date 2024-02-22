@@ -1,0 +1,89 @@
+---
+title: "Problem_week4"
+format: html
+editor: visual
+---
+
+
+Create training and test data like this:
+
+
+```{r}
+library(dslabs)
+if (!exists("mnist")) mnist <- read_mnist()
+set.seed(2024-2-14)
+index <- sample(nrow(mnist$train$images), 10000) 
+x <- mnist$train$images[index,]
+y <- factor(mnist$train$labels[index])
+index <- sample(nrow(mnist$test$images), 1000)  
+x_test <- mnist$test$images[index,]
+y_test <- factor(mnist$test$labels[index])
+
+```
+
+
+1.  Train a kNN model. Report the error rate on the test data only after you decide on a model.
+
+
+```{r}
+set.seed(2024-2-14)
+library(caret)
+#I use a k parameter 3,5,7
+k_values <- data.frame(k = c(3, 5, 7))
+train_knn <- train(y ~ ., method = "knn", tuneGrid = k_values, data = data.frame(x,y))
+train_knn$results$Accuracy
+#best performing The final value used for the model was k = 7
+predict_knn <- predict(train_knn, data.frame(x_test, y_test), type = "raw")
+confusion_matrix <- confusionMatrix(predict_knn, y_test)
+error_rate <- confusion_matrix$overall['Accuracy']
+error_rate
+
+```
+
+
+2.  TrainRandom Forest model. Report the error rate on the test data only after you decide on a model.
+
+
+```{r}
+library(caret)
+set.seed(2024-2-22)
+train_rf <- train(y ~ ., method = "ranger", data = data.frame(x,y))
+#it alone gets the best accuracy model in this model the best was got with mtry=39
+predict_rf <- predict(train_rf, data.frame(x_test, y_test), type = "raw")
+confusion_matrix <- confusionMatrix(predict_rf, y_test)
+error_rate <- confusion_matrix$overall['Accuracy']
+error_rate
+
+```
+
+
+3.  Train a model of your choosing. Report the error rate on the test data only after you decide on a model.
+
+
+```{r}
+
+fit <- glm(y ~ ., family = "binomial", data = data.frame(x,y))
+predict_glm <- predict(fit, data.frame(x_test, y_test))
+confusion_matrix <- confusionMatrix(predict_glm, y_test)
+error_rate <- confusion_matrix$overall['Accuracy']
+error_rate
+
+```
+
+
+4.  Build an ensemble with the three methods. Feel free to add more if you want. Report the error rate on the test data only after you build your esnamble.
+
+
+```{r}
+library(caret)
+p_rf <- predict(train_rf, data.frame(x_test, y_test), type = "prob")  
+p_rf <- p_rf / rowSums(p_rf)
+p_knn  <- predict(train_knn, data.frame(x_test, y_test),  type="prob")
+p_knn <- (p_rf + p_knn) / 2
+p_glm <- predict(glm_model, newdata = data.frame(x_test), type = "prob")
+p_ensemble <- (p_rf + p_knn + p_glm) / 3
+y_pred_ensemble <- factor(apply(p_ensemble, 1, which.max) - 1)
+accuracy_ensemble <- confusionMatrix(y_pred_ensemble, y_test)$overall["Accuracy"]
+
+```
+
